@@ -123,15 +123,12 @@ void running_mean_sub::process (Pulsar::Archive* archive)
 				}
 				// For the extra bins, normalize by the mean of the previous block
 				if(nbin - ((iblock+1)*win) == extra)
-					for(int e=0;e<extra;e++){
+					for(int e=0;e<extra;e++)
 						data[(iblock+1)*win+e] /= meandata;
-						//printf("%d ",(iblock+1)*win+e);
-					}	
 	    	     }			
 		    //}
 		    // Write out a full chan
 		    archive->get_Profile (isub, ipol, ichan)->set_amps(data);
-		    //printf("\n");
                 }
             } else {
                 archive->get_Integration(isub)->set_weight(ichan, 0.0);
