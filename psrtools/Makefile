@@ -1,5 +1,5 @@
 #PROGS = autotoa normalize_rms running_mean_sub
-PROGS = polifitgsl running_mean_sub normalize_rms
+PROGS = polifitgsl running_mean_sub
 all: $(PROGS)
 install: $(PROGS)
 	cp $(PROGS) $(PSR)/bin
@@ -13,15 +13,14 @@ install: $(PROGS)
 #check_model_phase: check_model_phase.C
 #	$(CXX) -g `psrchive --cflags` -o check_model_phase check_model_phase.C `psrchive --libs` -I/usr/local/include/
 
-normalize_rms: normalize_rms.C
-	$(CXX) -g `psrchive --cflags` -o normalize_rms normalize_rms.C `psrchive --libs` -I/usr/local/include/
+#normalize_rms: normalize_rms.C
+#	$(CXX) -g `psrchive --cflags` -o normalize_rms normalize_rms.C `psrchive --libs` -I/usr/local/include/
 
 polifitgsl: polifitgsl.C
-	$(CXX)  -c polifitgsl.C -I/usr/local/include/ 
+	$(CXX)  -c polifitgsl.C -I/usr/local/include/ `pkg-config --cflags gsl`
 
 running_mean_sub: running_mean_sub.C
-	$(CXX) -g `psrchive --cflags` -o running_mean_sub running_mean_sub.C `psrchive --libs` -I/usr/local/include/ -L/usr/local/Cellar/gsl/1.16/lib/ -lgsl -L/usr/local/Cellar/gsl/1.16/lib/ -lgslcblas  -lm  polifitgsl.o 
-
+	$(CXX) -g `psrchive --cflags` -o running_mean_sub running_mean_sub.C polifitgsl.o  `psrchive --libs` `pkg-config --libs gsl` -lgsl -lgslcblas  -lm
 
 #dm_stat_search: dm_stat_search.C
 #	$(CXX) -O2 `dspsr_cflags` `psrchive --cflags` -o $@ $< `dspsr_ldflags` 
