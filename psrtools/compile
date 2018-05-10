@@ -1,0 +1,2 @@
+gcc -c polifitgsl.C -I/usr/local/include/  -L/usr/local/Cellar/gsl/1.16/lib/ -lgsl -L/usr/local/Cellar/gsl/1.16/lib/ -lgslcblas  -lm
+g++  -o main main.cpp -I/usr/local/include/  -L/usr/local/Cellar/gsl/1.16/lib/ -lgsl -L/usr/local/Cellar/gsl/1.16/lib/ -lgslcblas  -lm  polifitgsl.o

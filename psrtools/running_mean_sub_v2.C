@@ -2,7 +2,7 @@
  *
  *   Copyright (C) 2018 by Vishal Gajjar
  *   Licensed under the Academic Free License version 2.1
- *   A modified version of Paul's normlize_rms to remove running mean from archive files. 
+ *   A modified version of Paul's running_mean_sub to remove running mean from archive files. 
  *   Only useful for extracted files (non folded profiles, FRB type)
  ***************************************************************************/
 
@@ -17,8 +17,6 @@ using namespace std;
 #include "Pulsar/PhaseWeight.h"
 #include "strutil.h"
 #include "stdio.h"
-
-#include "polifitgsl.h"
 
 using namespace Pulsar;
 
@@ -42,7 +40,6 @@ protected:
     void add_options (CommandLine::Menu&);
 
     bool do_weight;
-    int deg;
 };
 
 
@@ -50,33 +47,26 @@ running_mean_sub::running_mean_sub ()
   : Application ("running_mean_sub", "running mean subtraction")
 {
     do_weight = false;
-    deg = 2;
 }
 
 
 void running_mean_sub::add_options (CommandLine::Menu& menu)
 {
     CommandLine::Argument* arg;
-    //arg = menu.add (do_weight, 'w');
-    //arg->set_help("apply scaling to weights rather than to data");
-    arg = menu.add(deg,"d");
-    // This is not working yet
-    arg->set_help("Order of polynomial fit (not working yet, auto calc now)");
+    arg = menu.add (do_weight, 'w');
+    arg->set_help("apply scaling to weights rather than to data");
 }
 
 void running_mean_sub::setup ()
 {
 }
 
+
 void running_mean_sub::process (Pulsar::Archive* archive)
 {
-    
-    int nbin = archive->get_nbin();		
-    if(nbin>4000) deg = 10;
-    if(nbin<4000 and nbin>2000) deg = 8;
-    if(nbin<2000 and nbin>1000) deg = 6;
-    if(nbin<1000 and nbin>150) deg = 5;    
-    if(nbin<150) deg = 2;
+    // Window size
+    const unsigned nbin = archive->get_nbin();		
+
     int nblock = 10; // Number of blocks across profile for smoothing 
     int win = floor(nbin/nblock);
     int extra = nbin - nblock*win;	
@@ -98,10 +88,7 @@ void running_mean_sub::process (Pulsar::Archive* archive)
     vector< vector< double> > var;
     if (scale_indep_subints == false)
         copy->get_Integration(0)->baseline_stats(&mean, &var);
-	
-    printf("Polynomial fit with degree : %d\n",deg);	
-    // Dedisperse makes no difference as we are operating on individule channels
-   // archive->dedisperse(); 	
+
     // Loop over subints
     for (unsigned isub=0; isub<archive->get_nsubint(); isub++) {
 
@@ -123,12 +110,9 @@ void running_mean_sub::process (Pulsar::Archive* archive)
 		
 		    // Read a full chan 
 		    float* data = archive->get_Profile (isub, ipol, ichan)->get_amps();
-		    
-		    // FIRST Technique
-		    /* Using blocks. The extracted time-series gets divided in to many blocks 
-		     * and average are determined from each block for subtraction (didn't work very well)
-		     *
-		     int iblock = 0;
+		    //int iblock = 0;
+		    /*
+		    //for (unsigned ibin=0; ibin<nbin;ibin++){    
 		     for (int iblock = 0; iblock<nblock; iblock++){      
 			    	float meandata = 0;
 				for(int w=0;w<win | iblock+win>nbin ;w++)
@@ -143,12 +127,8 @@ void running_mean_sub::process (Pulsar::Archive* archive)
 					for(int e=0;e<extra;e++)
 						data[(iblock+1)*win+e] -= meandata;
 	    	     }
-		     */		
-
-		    // SECOND Technique
-		    /* Moving aveage is calculated for each bin and subtracted. 
-		     * (worked but too many free parameters to adjust)
-		     *
+		     */			
+		    //}
 		    float oldmeandata=0;
 		    for (unsigned ibin=0; ibin<nbin;ibin++){
 			float meandata=0;   
@@ -166,23 +146,8 @@ void running_mean_sub::process (Pulsar::Archive* archive)
 			}	
 			oldmeandata=meandata;
 		    }
-		    */
-
-		    // THIRD Technique
-		    float* x; 
-		    float* smooth;
-		    //int deg=30;
-		    double coeff[deg];
-
-		    x = (float *)malloc(nbin * sizeof(float));
-		    smooth = (float *)malloc(nbin * sizeof(float));
-		    
-		    for (unsigned ibin=0; ibin<nbin;ibin++) x[ibin] = ibin;
-		    
-	    	    smooth = polynomialfit(nbin, deg, x, data, coeff);	    
-		   	    
 		    // Write out a full chan
-		    archive->get_Profile (isub, ipol, ichan)->set_amps(smooth);
+		    archive->get_Profile (isub, ipol, ichan)->set_amps(data);
                 }
             } else {
                 archive->get_Integration(isub)->set_weight(ichan, 0.0);
