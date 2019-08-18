@@ -78,7 +78,7 @@ void running_mean_sub::process (Pulsar::Archive* archive)
     if(nbin<2000 and nbin>1000) deg = 6;
     if(nbin<1000 and nbin>150) deg = 5;    
     if(nbin<150) deg = 2;
-    int nblock = 10; // Number of blocks across profile for smoothing 
+    int nblock = 20; // Number of blocks across profile for smoothing 
     int win = floor(nbin/nblock);
     int extra = nbin - nblock*win;	
     // cout << " Window " << win << " Blocks " << nblock << endl;
@@ -149,7 +149,7 @@ void running_mean_sub::process (Pulsar::Archive* archive)
 		    // SECOND Technique
 		    /* Moving aveage is calculated for each bin and subtracted. 
 		     * (worked but too many free parameters to adjust)
-		     *
+		     
 		    float oldmeandata=0;
 		    for (unsigned ibin=0; ibin<nbin;ibin++){
 			float meandata=0;   
@@ -163,27 +163,31 @@ void running_mean_sub::process (Pulsar::Archive* archive)
                          	       meandata += data[ibin+w];
                         	}
 				meandata /= win;
-				data[ibin] -= meandata; 	
+				data[ibin] -= meandata; 
 			}	
 			oldmeandata=meandata;
 		    }
+		    archive->get_Profile (isub, ipol, ichan)->set_amps(data);
 		    */
+		    //
 
 		    // THIRD Technique
+		    
 		    float* x; 
 		    float* smooth;
 		    //int deg=30;
 		    double coeff[deg];
-
 		    x = (float *)malloc(nbin * sizeof(float));
 		    smooth = (float *)malloc(nbin * sizeof(float));
 		    
 		    for (unsigned ibin=0; ibin<nbin;ibin++) x[ibin] = ibin;
 		    
 	    	    smooth = polynomialfit(nbin, deg, x, data, coeff);	    
-		   	    
+
 		    // Write out a full chan
 		    archive->get_Profile (isub, ipol, ichan)->set_amps(smooth);
+		    
+		    //
                 }
             } else {
                 archive->get_Integration(isub)->set_weight(ichan, 0.0);
